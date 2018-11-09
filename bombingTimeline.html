@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400" rel="stylesheet">
+  <style>
+    body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0; }
+
+    .axis.bombTime path,line{
+      stroke: none;
+    }
+
+    .axis.bombTime text{
+      font-family: 'Montserrat', sans-serif;
+      text-anchor: end;
+      fill: white;
+    }
+    .y.axis.bombTime text{
+      font-size: 12px;
+    }
+    .y.axis.grid.bombTime line{
+      stroke: white;
+      stroke-width: 0.5px;
+      stroke-opacity: 0.4;
+    }
+  </style>
+</head>
+
+
+<body>
+  <script>
+    d3.csv('BombingsPak.csv', function(error, bombData) {
+      console.log(bombData);
+
+      const parseDate = d3.timeParse('%d-%m-%Y')
+      const formatMonth = d3.timeFormat("%b");
+
+      bombData.forEach(d => {
+        d.idate = `${d.iday}-${d.imonth}-${d.iyear}`
+        d.idateP = parseDate(`${d.iday}-${d.imonth}-${d.iyear}`)
+        d.idateDummy = `${d.iday}-${d.imonth}-2016`
+        d.idateDummyP = parseDate(`${d.iday}-${d.imonth}-2016`) // a leap year that will be used for xScale
+      })
+
+      var svg_width = 800;
+      var svg_height = 800;
+      var margins = {
+        top: 80,
+        bottom: 40,
+        right: 30,
+        left: 70
+      }
+
+      var height = svg_height - margins.top - margins.bottom;
+      var width = svg_width - margins.left - margins.right;
+
+      var svg_g = d3.select("body")
+                      .append("svg")
+                      .attr("width", svg_width)
+                      .attr("height", svg_height)
+                      .style('background', 'black')
+                      .append("g")
+                      .attr("transform", "translate("+ margins.left + ", "+ margins.top +")");
+
+      var alphabetOrder = function(a, b){
+        if(a < b) return -1;
+        else if(a > b) return 1;
+        else return 0;
+      }
+
+      var years =  bombData.map(d => d.iyear)
+                              .sort(alphabetOrder)
+                              .reverse();
+
+      console.log(years);
+
+      var y = d3.scaleOrdinal()
+                .domain(years)
+
+      var interval = height/ y.domain().length;
+      y.range(d3.range(0, height + 1, interval));
+
+      var x = d3.scaleTime()
+                .domain(d3.extent(bombData.map(d => d.idateDummyP)))
+                .range([0, width]);
+
+      var xAxis = d3.axisBottom()
+                   .scale(x)
+                   .tickFormat(formatMonth);
+
+      var yAxisLeft = d3.axisLeft()
+                   .scale(y)
+
+      var yGridlines = d3.axisLeft()
+                          .scale(y)
+                          .tickSize(-width)
+                          .tickFormat("")
+
+      svg_g.append('g')
+          .attr('class', 'y axis grid bombTime')
+          .call(yGridlines);
+
+      svg_g.append('g')
+          .attr('class', 'y axis bombTime')
+          .call(yAxisLeft)
+          .attr('transform', 'translate(-15,0)');
+
+      svg_g.append('g')
+          .attr('class', 'x axis bombTime')
+          .call(xAxis)
+          .attr('transform', 'translate(0,' + height + ')');
+
+      var byDateData = d3.nest()
+                        .key(d => d.idate)
+                        // .key(d => d.idateDummy)
+                        // .key(d => d.iyear)
+                        .rollup(v => {
+                          return {
+                            kills: d3.sum(v.map(entry => entry.nkill)),
+                            iday: v[0].iday,
+                            iyear: v[0].iyear,
+                            imonth: v[0].imonth,
+                            idateDummy: v[0].idateDummy,
+                            idateP: v[0].idateP,
+                            idateDummyP: v[0].idateDummyP
+                          }
+                        })
+                        .entries(bombData);
+
+
+      console.log(byDateData);
+
+      var bubScale = d3.scaleSqrt()
+                      .domain([0, d3.max(byDateData.map(d => d.value.kills))])
+                      .range([0, 20])
+
+      var maxTime = d3.max(byDateData.map(d => d.key))
+      var minTime = d3.min(byDateData.map(d => d.key))
+
+      var durSim = 25;
+
+      var delScale = d3.scaleTime()
+                      .domain(d3.extent(bombData.map(d => d.idateP)))
+                      .range([0, durSim * 1000]);
+
+      console.log(d3.extent(bombData.map(d => d.idateP)));
+      console.log(d3.extent(byDateData.map(d => d.value.idateP)));
+      console.log([0, durSim * 1000]);
+      console.log(parseDate('20-10-2008'));
+      console.log(delScale(parseDate('20-10-2017')));
+
+      svg_g.append('g')
+          .classed('bombBubbles', true)
+          .selectAll('circle')
+          .data(byDateData)
+          .enter()
+          .append('circle')
+          .attr('cx', d => x(d.value.idateDummyP))
+          .attr('cy', d => y(d.value.iyear))
+          //.attr('cy', d => y(d.value.iyear))
+          .attr('r', 0)
+          //.attr('cx', d => )
+          .style('fill', 'orange')
+          .style('opacity', 0.5)
+          .transition()
+          .delay(d => {
+              return delScale(d.value.idateP);
+              console.log(delScale(d.value.idateP));
+          })
+          .duration(750)
+          .ease(d3.easeBack)
+          .attr('r', d => {
+            return bubScale(d.value.kills)
+            console.log(bubScale(d.value.kills));
+          });
+
+    })
+
+  </script>
+</body>

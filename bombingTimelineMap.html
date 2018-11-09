@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://unpkg.com/d3-hexgrid"></script>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+  <script src="PakBoundary.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400" rel="stylesheet">
+
+  <style>
+    body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0; }
+
+    }
+  </style>
+</head>
+
+
+<body>
+  <script>
+  d3.csv('BombingsPak.csv', function(error, bombData){
+
+    // defining the projection for map (change center and scale to get desired size for the map)
+    const projection = d3.geoMercator()
+        .center([74.3, 31.5])
+        .scale([150 * 13]);
+
+    // defining the paths for the maps
+    const path = d3.geoPath().projection(projection);
+
+    const svg = d3.select('body')
+                  .append('svg')
+                  .classed('mapSVG', true)
+                  .attr("preserveAspectRatio", "xMinYMin meet")
+                  .attr("viewBox", "0 0 636 600")
+                  .style('background', 'black');
+
+    // Produce and configure the hexgrid instance.
+    const hexgrid = d3.hexgrid()
+      //.extent([width, height])
+      .extent([1000, 600])
+      .geography(Pak)
+      .projection(projection)
+      .pathGenerator(path)
+      .hexRadius([3]);
+
+    console.log(bombData);
+    var bombDataKill = bombData.filter(d => (+d.nkill) > 0);
+    console.log(bombDataKill);
+
+    const parseDate = d3.timeParse("%d-%m-%Y");
+
+    bombDataKill.forEach(d => {
+      d.idate = `${d.iday}-${d.imonth}-${d.iyear}`;
+      d.idateP = parseDate(`${d.iday}-${d.imonth}-${d.iyear}`);
+      d.idateDummy = `${d.iday}-${d.imonth}-2016`;
+      d.idateDummyP = parseDate(`${d.iday}-${d.imonth}-2016`); // a leap year that will be used for xScale
+      d.nkill = + d.nkill;
+      d.nwound = + d.nwound;
+      d.x = projection( [+d.longitude, +d.latitude] )[0];
+      d.y = projection( [+d.longitude, +d.latitude] )[1];
+      d.lat = d.latitude;
+      d.lng = d.longitude;
+    })
+
+    const hex = hexgrid(bombDataKill, ['nkill', 'nwound', 'idateP']);
+
+    console.log(bombData);
+    console.log(hex.grid);
+    console.log(hex.grid.layout);
+
+    //console.log(8/ hex.radius());
+
+    let nkills = hex.grid.layout.map(d => d.length ? d3.sum(d.map(entry => entry.nkill)) : 0);
+
+    // Get legend data.
+    const equalRange = n => d3.range(n).map(d => d / (n - 1));
+
+    const nKillsSorted = nkills
+                          .sort(d3.ascending)
+                          .filter(d => d);
+
+
+    console.log(nKillsSorted);
+    nKillsMax = d3.max(nKillsSorted);
+    let nSteps = 10;
+    let interval = Math.floor(nKillsMax/10)
+
+    console.log(d3.range(0, nKillsMax + 1, interval))
+
+    let hexBreaks = d3.range(0, nKillsMax + 1, interval);
+
+
+
+
+
+    var linearScaleMin = d3.scaleLinear()
+                              .domain([0, d3.max(nkills)])
+                              //.range([0, d3.max(nkills)])
+                              .range([Math.exp(0), Math.exp(5)]);
+
+    var hexColScale = d3.scaleLog()
+                        .base(Math.E)
+                        .domain([Math.exp(0), Math.exp(5)])
+                        //.domain([0, d3.max(nkills)])
+                        .range(['#212121', d3.color('#FFA726').brighter(0.5)])
+
+    var hexColScaleAsh = d3.scaleLog()
+                        .base(Math.E)
+                        .domain([Math.exp(0), Math.exp(5)])
+                        //.domain([0, d3.max(nkills)])
+                        .range(['#212121', 'black'])
+
+    var dataLegend = hexBreaks.map(d => {
+      return {
+        kills: d,
+        color: hexColScale(linearScaleMin(d))
+      }
+    })
+
+    console.log(dataLegend);
+
+    console.log(nkills)
+
+    let durSim = 30;
+
+    // Draw the hexes.
+    svg.append('g')
+      .selectAll('.hex')
+      .data(hex.grid.layout)
+      .enter()
+      .append('path')
+      .attr('class', 'hex')
+      .attr('d', hex.hexagon())
+      .attr('transform', d => `translate(${d.x}, ${d.y})`)
+      .style('fill', '#212121')
+      .transition()
+      .duration((durSim + 2) * 1000)
+      .styleTween("fill", function(d) {
+          i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
+          return function(t) {
+            if (d.length > 0){
+              let datum = d.filter(entry => entry.idateP < i(t));
+              //console.log(datum);
+              if (datum.length > 0){
+                return hexColScaleAsh(linearScaleMin(d3.sum(datum.map(entry => entry.nkill))));
+              }
+            }
+          }
+      })
+      .ease(d3.easeLinear)
+      .filter(d => (d.length))
+      .transition()
+      .duration(1000)
+      .ease(d3.easeLinear)
+      .delay(750)
+      //.delay((durSim + 2) * 1000)
+      .style('fill', d => hexColScale(linearScaleMin(d3.sum(d.map(entry => entry.nkill)))))
+      //.style('fill-opacity', d => (d.length) ? 1 :0.75)
+      .style('stroke', '#212121')
+      .style('stroke-width', '0.5px')
+
+      //.style('fill', d => !d.datapoints ? '#fff' : colourScale(d.datapoints));
+
+
+
+      let radScale = d3.scaleSqrt()
+                        .domain([0, d3.max(bombDataKill.map(d => d.nkill))])
+                        .range([0, 75])
+
+
+
+      let delScale = d3.scaleTime()
+                      .domain([parseDate('01-01-2000'), parseDate('31-12-2017')])
+                      .range([0, durSim * 1000]);
+
+      svg.append('g')
+        .classed('bubbleMania', true)
+        .selectAll('circle')
+        .data(bombDataKill)
+        .enter()
+        .append('circle')
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y)
+        .attr('r', 0)
+        .style('fill', 'orange')
+        .style('fill-opacity', 0.75)
+        .style('will-change', 'opacity')
+        .transition()
+        .duration(2000)
+        .delay(d => delScale(d.idateP))
+        .attr('r', d => radScale(d.nkill))
+        .style('fill-opacity', 0.0)
+        .remove()
+
+      var dataEnum = svg.append('g')
+                        .classed('data-enum', true)
+                        .attr('transform', 'translate(40, 40)');
+
+      const textFont = 'Montserrat'
+      const textColor = 'white'
+      const fontSize = '12px'
+
+      const dateFormat = d3.timeFormat('%Y')
+      const format = d3.format(",d")
+
+      dataEnum.append('text')
+            .classed('yearText', true)
+            .text('Year: 2000')
+            .style('fill', textColor)
+            .style('font-family', textFont)
+            .style('font-size', fontSize)
+            .transition()
+            .duration(durSim * 1000 + 2000)
+            .tween("text", function() {
+                var that = d3.select(this),
+                i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
+                return function(t) {
+                  that.text(`Year ${dateFormat(i(t))}`);
+                  //that.text(`Year ${i(t).getYear() + 1900}`);
+                };
+            })
+            .ease(d3.easeLinear)
+
+      dataEnum.append('text')
+            .classed('nkillText', true)
+            .text('Fatalities: 0')
+            .attr('transform', 'translate(0, 20)')
+            .style('fill', textColor)
+            .style('font-family', textFont)
+            .style('font-size', fontSize)
+            .transition()
+            .duration(durSim * 1000 + 2000)
+            .tween("text", function() {
+                var that = d3.select(this),
+                i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
+                return function(t) {
+                  let dataFiltered = bombDataKill.filter(d => d.idateP <= i(t))
+                  let sumKill = d3.sum(dataFiltered.map(d => d.nkill))
+                  //console.log(i(t).getYear() + 1900)
+                  that.text(`Fatalities: ${format(sumKill)}`);
+                };
+            })
+            .ease(d3.easeLinear)
+
+      dataEnum.append('text')
+            .classed('nkillText', true)
+            .text('Wounded: 0')
+            .attr('transform', 'translate(0, 40)')
+            .style('fill', textColor)
+            .style('font-family', textFont)
+            .style('font-size', fontSize)
+            .transition()
+            .duration(durSim * 1000 + 2000)
+            .tween("text", function() {
+                var that = d3.select(this),
+                i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
+                return function(t) {
+                  let dataFiltered = bombData.filter(d => d.idateP <= i(t))
+                  let sumWound = d3.sum(dataFiltered.map(d => d.nwound))
+                  //console.log(i(t).getYear() + 1900)
+                  that.text(`Wounded: ${format(sumWound)}`);
+                };
+            })
+            .ease(d3.easeLinear)
+
+        // you want 8 to be the size and given this you find the scale
+        const legendScale = 5/ hex.radius();
+
+        // group that holds the legend
+        let legendGroup = svg.append('g')
+                              .classed('legendGroup', true)
+                              .attr('transform', 'translate(40, 110)')
+
+
+        legendGroup.append('text')
+                  .text('Fatalities (log scale)')
+                  .attr('dy', 20)
+                  .style('fill', textColor)
+                  .style('font-family', textFont)
+                  .style('font-size', '7px')
+
+        let hexGroups = legendGroup.selectAll('.legendKey')
+                  .data(dataLegend)
+                  .enter()
+                  .append('g')
+                  .classed('legendKey', true)
+                  .attr('transform', (d, i) => {
+                    return `translate(${i * Math.sqrt(3) * hex.radius() * legendScale} , 0)`;
+                  });
+
+        hexGroups.append('g')
+                .classed('pathGroup', true)
+                .attr('transform', `scale(${legendScale})`)
+                .append('path')
+                .attr('d', hex.hexagon())
+                .style('fill', d => d.color)
+                .style('stroke', 'black')
+                .style('stroke-width', '0.5px')
+                //.style('fill-opacity', (d, i) => i == 0 ? 1 : 0.75);
+
+        hexGroups.append('text')
+                .text((d, i) =>  i == 0 || i == dataLegend.length - 1 ? d.kills : "")
+                .attr('dy', -10)
+                .style('fill', 'white')
+                .style('fill', textColor)
+                .style('font-family', textFont)
+                .style('font-size', '7px');
+
+        legendGroup.style('opacity', 0)
+                  .transition()
+                  .delay((durSim + 3) * 1000)
+                  //.duration(500)
+                  .style('opacity', 1);
+    })
+
+
+
+
+
+
+
+
+  </script>
+</body>
