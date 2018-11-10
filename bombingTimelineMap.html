@@ -177,7 +177,7 @@
     // define a group that contains the macro data
     let dataEnum = svg.append('g')
                       .classed('data-enum', true)
-                      .attr('transform', 'translate(40, 40)');
+                      .attr('transform', 'translate(40, 50)');
 
     // style features of macro-data
     const textFont = 'Montserrat'
@@ -190,6 +190,14 @@
 
     // writing text in the data enumeration group
     // Year
+    dataEnum.append('text')
+          .classed('Title', true)
+          .text('Bombings from 2000 - 2017 in 30 seconds')
+          .style('fill', 'orange')
+          .style('font-family', textFont)
+          .style('font-size', fontSize)
+          .attr('transform', 'translate(0, -20)')
+
     dataEnum.append('text')
           .classed('yearText', true)
           .text('Year: 2000')
@@ -294,7 +302,7 @@
                 .style('font-family', textFont)
                 .style('font-size', '7px');
 
-        // transition in the legend once the simulation ends        
+        // transition in the legend once the simulation ends
         legendGroup.style('opacity', 0)
                   .transition()
                   .delay((durSim + 3) * 1000)

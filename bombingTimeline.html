@@ -5,7 +5,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400" rel="stylesheet">
   <style>
-    body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0; }
+    body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0;}
+
+    svg text {
+      fill: white;
+      font-family: 'Montserrat', sans-serif;
+    }
 
     .axis.bombTime path,line{
       stroke: none;
@@ -44,9 +49,9 @@
       })
 
       var svg_width = 800;
-      var svg_height = 800;
+      var svg_height = 820;
       var margins = {
-        top: 80,
+        top: 100,
         bottom: 40,
         right: 30,
         left: 70
@@ -144,7 +149,9 @@
                       .domain(d3.extent(bombData.map(d => d.idateP)))
                       .range([0, durSim * 1000]);
 
-      var byDateDataNZ = byDateData.filter(d => d.value.kills > 0)
+      var byDateDataNZ = byDateData.filter(d => d.value.kills > 0);
+      var killsArray = byDateDataNZ.map(d => d.value.kills);
+      var killsMax = d3.max(killsArray);
 
       svg_g.append('g')
           .classed('bombBubbles', true)
@@ -170,6 +177,63 @@
               return radius >= 0 ? radius : 0;
             }
           })
+
+        // appending a legendgroup
+        let legendGroup = d3.select('svg')
+                          .append('g')
+                          .classed('legendGroup', true)
+                          .attr('transform', 'translate(750, 30)')
+
+        legendGroup.append('text')
+                  .text('Fatalities')
+                  .attr('dy', 40)
+                  .style('font-size', '12px')
+                  .style('text-anchor', 'middle');
+
+        // define circle parameters
+        const nCircles = 3
+
+        const intervalBub = Math.floor(killsMax/3);
+
+        let bubArray = [50, 150];
+
+        let radius = bubScale(150);
+
+        const circGroups = legendGroup.selectAll('circle')
+                  .data(bubArray)
+                  .enter()
+                  .append('g')
+                  .classed('circLegendGroup', true)
+                  .attr('transform', d => `translate(0, ${radius - bubScale(d)})`);
+
+        circGroups.append('circle')
+                  .attr('r', d => bubScale(d))
+                  //.style('fill', 'blue')
+                  .style('fill-opacity', 0.25)
+                  .style('stroke', 'white')
+                  //.style('stroke-width', '0.5px');
+
+        circGroups.append('text')
+                  .text(d => d)
+                  .attr('dx', 25)
+                  .attr('dy', d => -(bubScale(d) - 8/2))
+                  .style('fill', 'white')
+                  .style('font-family', 'Montserrat')
+                  .style('font-size', '8px')
+
+        let title = d3.select('svg')
+                      .append('g')
+                      .attr('transform', `translate(${svg_width/2}, 30)`)
+                      .append('text')
+                      .text('Fatalities due to bombings in Pakistan (2000 - 2017)')
+                      .style('font-size', '14px')
+                      .style('text-anchor', 'middle');
+
+
+
+
+
+
 
     })
 
