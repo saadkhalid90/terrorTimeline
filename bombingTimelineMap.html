@@ -6,11 +6,31 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
   <script src="PakBoundary.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:200,300,400,500" rel="stylesheet">
 
   <style>
     body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0; }
 
+    .bubbleMania {
+      fill: orange;
+      will-change: opacity;
     }
+
+    .Title {
+      fill: orange;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 400;
+      letter-spacing: 1px;
+      font-size: 14px;
+    }
+
+    .yearText, .nkillText, .nWoundText {
+      fill: white;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 400;
+      font-size: 12px;
+    }
+
   </style>
 </head>
 
@@ -164,9 +184,7 @@
       .attr('cx', d => d.x)
       .attr('cy', d => d.y)
       .attr('r', 0)
-      .style('fill', 'orange')
       .style('fill-opacity', 0.75)
-      .style('will-change', 'opacity')
       .transition()
       .duration(2000)
       .delay(d => delScale(d.idateP))
@@ -179,11 +197,6 @@
                       .classed('data-enum', true)
                       .attr('transform', 'translate(40, 50)');
 
-    // style features of macro-data
-    const textFont = 'Montserrat'
-    const textColor = 'white'
-    const fontSize = '12px'
-
     // defining year time format and a numeric format with ,s
     const dateFormat = d3.timeFormat('%Y')
     const format = d3.format(",d")
@@ -193,24 +206,19 @@
     dataEnum.append('text')
           .classed('Title', true)
           .text('Bombings from 2000 - 2017 in 30 seconds')
-          .style('fill', 'orange')
-          .style('font-family', textFont)
-          .style('font-size', fontSize)
           .attr('transform', 'translate(0, -20)')
 
     dataEnum.append('text')
           .classed('yearText', true)
           .text('Year: 2000')
-          .style('fill', textColor)
-          .style('font-family', textFont)
-          .style('font-size', fontSize)
+          .attr('transform', 'translate(0, 5)')
           .transition()
           .duration(durSim * 1000 + 2000)
           .tween("text", function() {
               var that = d3.select(this),
               i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
               return function(t) {
-                that.text(`Year ${dateFormat(i(t))}`);
+                that.text(`Year: ${dateFormat(i(t))}`);
               };
           })
           .ease(d3.easeLinear)
@@ -218,10 +226,7 @@
     dataEnum.append('text')
           .classed('nkillText', true)
           .text('Fatalities: 0')
-          .attr('transform', 'translate(0, 20)')
-          .style('fill', textColor)
-          .style('font-family', textFont)
-          .style('font-size', fontSize)
+          .attr('transform', 'translate(0, 25)')
           .transition()
           .duration(durSim * 1000 + 2000)
           .tween("text", function() {
@@ -239,10 +244,7 @@
     dataEnum.append('text')
           .classed('nWoundText', true)
           .text('Wounded: 0')
-          .attr('transform', 'translate(0, 40)')
-          .style('fill', textColor)
-          .style('font-family', textFont)
-          .style('font-size', fontSize)
+          .attr('transform', 'translate(0, 45)')
           .transition()
           .duration(durSim * 1000 + 2000)
           .tween("text", function() {
@@ -264,7 +266,7 @@
         // group that holds the legend
         let legendGroup = svg.append('g')
                               .classed('legendGroup', true)
-                              .attr('transform', 'translate(40, 110)')
+                              .attr('transform', 'translate(40, 125)')
 
         // title of the legend
         legendGroup.append('text')
