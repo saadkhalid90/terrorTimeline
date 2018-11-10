@@ -144,23 +144,16 @@
                       .domain(d3.extent(bombData.map(d => d.idateP)))
                       .range([0, durSim * 1000]);
 
-      console.log(d3.extent(bombData.map(d => d.idateP)));
-      console.log(d3.extent(byDateData.map(d => d.value.idateP)));
-      console.log([0, durSim * 1000]);
-      console.log(parseDate('20-10-2008'));
-      console.log(delScale(parseDate('20-10-2017')));
+      var byDateDataNZ = byDateData.filter(d => d.value.kills > 0)
 
       svg_g.append('g')
           .classed('bombBubbles', true)
           .selectAll('circle')
-          .data(byDateData)
+          .data(byDateDataNZ)
           .enter()
           .append('circle')
           .attr('cx', d => x(d.value.idateDummyP))
           .attr('cy', d => y(d.value.iyear))
-          //.attr('cy', d => y(d.value.iyear))
-          .attr('r', 0)
-          //.attr('cx', d => )
           .style('fill', 'orange')
           .style('opacity', 0.5)
           .transition()
@@ -170,10 +163,13 @@
           })
           .duration(750)
           .ease(d3.easeBack)
-          .attr('r', d => {
-            return bubScale(d.value.kills)
-            console.log(bubScale(d.value.kills));
-          });
+          .attrTween('r', (d, i) => {
+            const interp = d3.interpolateNumber(0, bubScale(d.value.kills))
+            return function(t) {
+              let radius = interp(t)
+              return radius >= 0 ? radius : 0;
+            }
+          })
 
     })
 
