@@ -24,11 +24,15 @@
       font-size: 14px;
     }
 
-    .yearText, .nkillText, .nWoundText {
+    .yearText, .nkillText, .nWoundText, .groupText {
       fill: white;
       font-family: 'IBM Plex Sans', sans-serif;
       font-weight: 400;
       font-size: 12px;
+    }
+
+    .groupText {
+      font-size: 7px;
     }
 
   </style>
@@ -272,9 +276,7 @@
         legendGroup.append('text')
                   .text('Fatalities (log scale)')
                   .attr('dy', 20)
-                  .style('fill', textColor)
-                  .style('font-family', textFont)
-                  .style('font-size', '7px')
+                  .classed('groupText', true);
 
         // row of hex groups on the legend
         let hexGroups = legendGroup.selectAll('.legendKey')
@@ -299,10 +301,8 @@
         hexGroups.append('text')
                 .text((d, i) =>  i == 0 || i == dataLegend.length - 1 ? d.kills : "")
                 .attr('dy', -10)
-                .style('fill', 'white')
-                .style('fill', textColor)
-                .style('font-family', textFont)
-                .style('font-size', '7px');
+                .classed('groupText', true);
+
 
         // transition in the legend once the simulation ends
         legendGroup.style('opacity', 0)
