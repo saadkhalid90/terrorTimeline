@@ -3496,6 +3496,9 @@ function attrTweenNS(fullname, value) {
   function tween() {
     var node = this, i = value.apply(node, arguments);
     return i && function(t) {
+			if(i(t) === undefined){
+				return;
+			}
       node.setAttributeNS(fullname.space, fullname.local, i(t));
     };
   }
@@ -3507,9 +3510,6 @@ function attrTween(name, value) {
   function tween() {
     var node = this, i = value.apply(node, arguments);
     return i && function(t) {
-      if(i(t) === undefined){
-        return;
-      }
       node.setAttribute(name, i(t));
     };
   }
@@ -3766,9 +3766,9 @@ function styleTween(name, value, priority) {
   function tween() {
     var node = this, i = value.apply(node, arguments);
     return i && function(t) {
-      if(i(t) === undefined){
-        return;
-      }
+			if(i(t) === undefined){
+	 			return;
+ 			}
       node.style.setProperty(name, i(t), priority);
     };
   }

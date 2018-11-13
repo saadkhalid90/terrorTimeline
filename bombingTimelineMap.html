@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:200,300,400,500" rel="stylesheet">
 
   <style>
-    body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0; }
+    body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0; backface-visibility: hidden; perspective: 1000;}
 
     .bubbleMania {
       fill: orange;
@@ -33,6 +33,11 @@
 
     .groupText {
       font-size: 7px;
+    }
+
+    .hexScaledBoxes {
+      stroke: black;
+      stroke-width: 0.5px;
     }
 
   </style>
@@ -133,7 +138,9 @@
     // defining the duration of the simulation
     const durSim = 30;
 
-    window.test = window.test || 1;
+  //  window.test = window.test || 1;
+
+    var i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
 
     // Draw the hexes.
     const hexGrid = svg.append('g')
@@ -145,16 +152,13 @@
       .attr('d', hex.hexagon()) // has pasth instructions for the hex
       .attr('transform', d => `translate(${d.x}, ${d.y})`) // translate each x based on info in the data
       .style('fill', '#212121')
-      .filter(d => d.length > 0)
+      .filter(d => d.length > 0) // perform a tween only if d has elements
       .transition()
       .duration((durSim + 2) * 1000)
       // make hexes darker following explosions
       .styleTween("fill", function(d) {
-          var i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
           return function(t) {
-            // perform a tween only if d has elements
-            // filter data to enties before the interplolated date
-            let datum = d.filter(entry => entry.idateP < i(t));
+            let datum = d.filter(entry => entry.idateP < i(t)); // filter data to enties before the interplolated date
             if (datum.length > 0){ // if the filteres datum contains any elements
               return hexColScaleAsh(linearScaleMin(d3.sum(datum.map(entry => entry.nkill))));
             }
@@ -166,10 +170,8 @@
       .duration(750)
       .ease(d3.easeLinear)
       .delay(1000)
-      .style('fill', d => hexColScale(linearScaleMin(d3.sum(d.map(entry => entry.nkill))))) // color based on the heatmap hexColorScale
-      .style('stroke', 'black')
-      .style('stroke-width', '0.5px')
-
+      .style('fill', d => hexColScale(linearScaleMin(d3.sum(d.map(entry => entry.nkill)))))  // color based on the heatmap hexColorScale
+      .attr('class', 'hexScaledBoxes');
 
     // defining a scale for bomb radius
     const radScale = d3.scaleSqrt()
@@ -208,6 +210,8 @@
 
     // writing text in the data enumeration group
     // Year
+
+
     dataEnum.append('text')
           .classed('Title', true)
           .text('Bombings from 2000 - 2017 in 30 seconds')
@@ -220,8 +224,7 @@
           .transition()
           .duration(durSim * 1000 + 2000)
           .tween("text", function() {
-              var that = d3.select(this),
-              i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
+              var that = d3.select(this);
               return function(t) {
                 that.text(`Year: ${dateFormat(i(t))}`);
               };
@@ -235,8 +238,7 @@
           .transition()
           .duration(durSim * 1000 + 2000)
           .tween("text", function() {
-              var that = d3.select(this),
-              i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
+              var that = d3.select(this);
               return function(t) {
                 let dataFiltered = bombDataKill.filter(d => d.idateP <= i(t))
                 let sumKill = d3.sum(dataFiltered.map(d => d.nkill))
@@ -245,6 +247,7 @@
               };
           })
           .ease(d3.easeLinear)
+
     // number of wounded
     dataEnum.append('text')
           .classed('nWoundText', true)
@@ -253,8 +256,7 @@
           .transition()
           .duration(durSim * 1000 + 2000)
           .tween("text", function() {
-              var that = d3.select(this),
-              i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
+              var that = d3.select(this);
               return function(t) {
                 let dataFiltered = bombData.filter(d => d.idateP <= i(t))
                 let sumWound = d3.sum(dataFiltered.map(d => d.nwound))
