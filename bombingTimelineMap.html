@@ -2,7 +2,7 @@
 <head>
   <meta charset="utf-8">
   <script src="https://unpkg.com/d3-hexgrid"></script>
-  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://d3js.org/d3.v4.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
   <script src="PakBoundary.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400" rel="stylesheet">
@@ -133,6 +133,8 @@
     // defining the duration of the simulation
     const durSim = 30;
 
+    window.test = window.test || 1;
+
     // Draw the hexes.
     const hexGrid = svg.append('g')
       .selectAll('.hex')
@@ -143,19 +145,18 @@
       .attr('d', hex.hexagon()) // has pasth instructions for the hex
       .attr('transform', d => `translate(${d.x}, ${d.y})`) // translate each x based on info in the data
       .style('fill', '#212121')
+      .filter(d => d.length > 0)
       .transition()
       .duration((durSim + 2) * 1000)
       // make hexes darker following explosions
       .styleTween("fill", function(d) {
-          i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
+          var i = d3.interpolateDate(parseDate('01-01-2000'), parseDate('31-12-2017'))
           return function(t) {
             // perform a tween only if d has elements
-            if (d.length > 0){
-              // filter data to enties before the interplolated date
-              let datum = d.filter(entry => entry.idateP < i(t));
-              if (datum.length > 0){ // if the filteres datum contains any elements
-                return hexColScaleAsh(linearScaleMin(d3.sum(datum.map(entry => entry.nkill))));
-              }
+            // filter data to enties before the interplolated date
+            let datum = d.filter(entry => entry.idateP < i(t));
+            if (datum.length > 0){ // if the filteres datum contains any elements
+              return hexColScaleAsh(linearScaleMin(d3.sum(datum.map(entry => entry.nkill))));
             }
           }
       })
